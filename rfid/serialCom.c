@@ -60,7 +60,7 @@ void set_mincount(int fd, int mcount)
 
 int main()
 {
-    char *portname = "/dev/cu.usbmodem1441";
+    char *portname = "/dev/ttyACM1";
     int fd;
     int wlen;
 
@@ -79,16 +79,21 @@ int main()
 
     /* simple noncanonical input */
     do {
-        unsigned char buf[80];
+        unsigned char buf[256];
+	unsigned char hostname[256] = "";
         int rdlen;
 
-        rdlen = read(fd, buf, sizeof(buf) - 1);
-        if (rdlen > 0) {
-            buf[rdlen] = 0;
-            printf("%s", buf);
-        } else if (rdlen < 0) {
-            printf("Error from read: %d: %s\n", rdlen, strerror(errno));
-        }
+
+        rdlen = read(fd, buf, sizeof(buf)-1);
+
+   	printf("nb lu : %d\n", rdlen);
+   	printf("valeur : %s\n", buf);
+   	printf("taille : %lu\n", sizeof(buf));
+                
+	strcpy(hostname, buf);
+
+	printf("\nValeur de hostname : --%s--\n", hostname);
+
         /* repeat read to get full message */
     } while (1);
 }

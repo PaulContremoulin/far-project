@@ -7,10 +7,11 @@
 
 Adafruit_NFCShield_I2C nfc(IRQ, RESET);
 
+String strid;
 
 void setup(){
   Serial.begin(115200);
-  Serial.println("Hello!");
+  //Serial.println("Hello!");
 
   nfc.begin();
 
@@ -21,9 +22,9 @@ void setup(){
   }
   
   // Obtenir les données et les affichées!
-  Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX); 
-  Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC); 
-  Serial.print('.'); Serial.println((versiondata>>8) & 0xFF, DEC);
+  //Serial.print("Found chip PN5"); Serial.println((versiondata>>24) & 0xFF, HEX); 
+  //Serial.print("Firmware ver. "); Serial.print((versiondata>>16) & 0xFF, DEC); 
+  //Serial.print('.'); Serial.println((versiondata>>8) & 0xFF, DEC);
   
   // Fixer le nombre d'essais MAS pour lire les carte
   // Cela empeche d'attente infiniement après la lecture d'une carte (qui est
@@ -33,7 +34,7 @@ void setup(){
   // configurer la carte pour lire des tags RFID
   nfc.SAMConfig();
     
-  Serial.println("Attendre apres une carte ISO14443A");
+  //Serial.println("Attendre apres une carte ISO14443A");
 }
 
 void loop(void) {
@@ -47,14 +48,16 @@ void loop(void) {
   success = nfc.readPassiveTargetID(PN532_MIFARE_ISO14443A, &uid[0], &uidLength);
   
   if (success) {
-    Serial.println("Une carte trouvee!");
-    Serial.print("Longueur UID: ");Serial.print(uidLength, DEC);Serial.println(" bytes / octets");
-    Serial.print("Valeur UID: ");
+    strid = "";
+    //Serial.println("Une carte trouvee!");
+    //Serial.print("Longueur UID: ");Serial.print(uidLength, DEC);Serial.println(" bytes / octets");
+    //Serial.print("Valeur UID: ");
     for (uint8_t i=0; i < uidLength; i++) 
     {
-      Serial.print(uid[i], DEC); 
+      strid = strid + uid[i]; 
     }
-    Serial.println("");
+    Serial.print(strid);
+    //Serial.println("");
     // Attendre une seconde avant de continuer
     delay(1000);
   }
