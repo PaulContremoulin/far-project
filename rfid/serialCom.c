@@ -60,25 +60,21 @@ void set_mincount(int fd, int mcount)
 
 int main()
 {
-    char *portname = "/dev/ttyACM0";
+    char *portname = "/dev/cu.usbmodem1441";
     int fd;
     int wlen;
 
     fd = open(portname, O_RDWR | O_NOCTTY | O_SYNC);
+
     if (fd < 0) {
         printf("Error opening %s: %s\n", portname, strerror(errno));
         return -1;
+    }else{
+	printf("C'est bon\n");
     }
     /*baudrate 115200, 8 bits, no parity, 1 stop bit */
     set_interface_attribs(fd, B115200);
     //set_mincount(fd, 0);                /* set to pure timed read */
-
-    /* simple output */
-    wlen = write(fd, "Hello!\n", 7);
-    if (wlen != 7) {
-        printf("Error from write: %d, %d\n", wlen, errno);
-    }
-    tcdrain(fd);    /* delay for output */
 
 
     /* simple noncanonical input */
@@ -88,16 +84,8 @@ int main()
 
         rdlen = read(fd, buf, sizeof(buf) - 1);
         if (rdlen > 0) {
-#ifdef DISPLAY_STRING
             buf[rdlen] = 0;
-            printf("Read %d: \"%s\"\n", rdlen, buf);
-#else /* display hex */
-            unsigned char   *p;
-            printf("Read %d:", rdlen);
-            for (p = buf; rdlen-- > 0; p++)
-                printf(" 0x%x", *p);
-            printf("\n");
-#endif
+            printf("%s", buf);
         } else if (rdlen < 0) {
             printf("Error from read: %d: %s\n", rdlen, strerror(errno));
         }
