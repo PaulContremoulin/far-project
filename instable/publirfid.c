@@ -9,7 +9,7 @@
 #include <netdb.h>
 #include <termios.h>
 #include <errno.h>
-#include <fcntl.h> 
+#include <fcntl.h>
 
 #define PORT 1123
 
@@ -148,16 +148,17 @@ int sendToBeBotte(char *canal, char *clefCanal, char *ressource, char *data[]) {
 
 int main(void){
 
-    char *portname = "/dev/ttyACM1";
+    char *portname = "/dev/ttyACM0";
     int fd;
     int wlen;
     char *pos;
     char ipvalue[256];
     char *infoAPublier[4];
-    char *channel = "VB_TC";
+    char *channel = "RJpartieTEST";
     char *ressource = "msg";
     // VB_TC : 1496436248369_f6FG4rK7bYcY9R1u
-    char *channelKey = "1496436248369_f6FG4rK7bYcY9R1u";
+    // RJpartieTEST : 1496856856204_4VjiqoDtPoWVTeHD
+   char *channelKey = "1496856856204_4VjiqoDtPoWVTeHD";
 
     fd = open(portname, O_RDWR | O_NOCTTY | O_SYNC);
 
@@ -198,7 +199,7 @@ int main(void){
 
 	infoAPublier[0] = "type_msg=RFID-IP";
 	infoAPublier[1] = "type_ent=RJ";
-	infoAPublier[2] = "num=2";
+	infoAPublier[2] = "num=1";
 	infoAPublier[3] = data;
 
 	sendToBeBotte(channel, channelKey, ressource, infoAPublier);

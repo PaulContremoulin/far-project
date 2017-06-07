@@ -10,6 +10,7 @@
 #include <termios.h>
 #include <errno.h>
 #include <fcntl.h> 
+#include <time.h> 
 
 #define PORT 1123
 
@@ -237,43 +238,35 @@ void recvToBebotte(char *channel, char *ressource, char *data) {
     //printf("Body reponse:\n%s\n\n",data);
 }
 
-//Envoi des données au monitoring
-int sendMonitoring(char* rfid, char* idball) {
+//Envoi la validation du but
+int sendValidBut(char* joueur) {
+    char *infoAPublier[4];
+    char *channel = "VBpartieTEST";
+    char *ressource = "msg";
+    // VB_TC : 1496436248369_f6FG4rK7bYcY9R1u
+    // VBpartieTEST : 1496856372525_RTFvkGaUTGiDzni8
+    // RJpartieTEST : 1496856856204_4VjiqoDtPoWVTeHD
+    char *channelKey = "1496856372525_RTFvkGaUTGiDzni8";
 
-    int sockD, verif;
-    struct sockaddr_in sin;
-    struct hostent *hostinfo;
-    
-    /* Configuration de la connexion */
-    sin.sin_port = htons(80);
-    hostinfo = gethostbyname("api.beebotte.com");
-    
-    sin.sin_addr = *(struct in_addr *) hostinfo->h_addr;
-    sin.sin_family = AF_INET;
-    
-    
-    /* Creation de la socket */
-    sockD = socket(AF_INET, SOCK_STREAM, 0);
-    
-    /* Tentative de connexion au serveur */
-    connect(sockD, (struct sockaddr*)&sin, sizeof(sin));
-    printf("Connexion a %s sur le port %d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
-    
-    /* Creation de la requête */
-    char request[256];
-    sprintf   (request, "GET /dweet/for/robot17?rfid=%s&idball=%s HTTP/1.1\r\nHost:%s\r\n\r\n", rfid, idball, "www.dweet.io");
-    printf("REQUETE : \n%s\n",request);
-    printf("Valeur de rfid : %s\n",rfid);
-    printf("Valeur de idball : %s\n\n",idball);
-    /* Envoie du message au serveur */
-    verif = send(sockD, request, strlen(request),0);
-    close(sockD);
-    return 1;
+    char datenow[20];
+    time_t now = time(NULL);
+    strftime(datenow, 20, "%Y-%m-%d %H:%M:%S", localtime(&now));
+  
+    char data[256] = "JOUEUR=";
+    strcat(data,joueur);strcat(data,";");strcat(data,"TIME=");strcat(data,datenow);
+    printf("\nValeur de DATA   : %s\n", data);
+
+    infoAPublier[0] = "type_msg=BUT";
+    infoAPublier[1] = "type_ent=VB";
+    infoAPublier[2] = "num=1";
+    infoAPublier[3] = data; 
+
+    sendToBeBotte(channel, channelKey, ressource, infoAPublier);	
 }
 
 //Configuration du validateur de but
 void init(char *robots){
-    char *channel = "VB_TC";
+    char *channel = "RJpartieTEST";
     char *ressource = "msg";
     //Fonction beta de reception des rfids
     recvToBebotte(channel, ressource, robots);
@@ -325,6 +318,7 @@ int main(void){
     int fd;
     int wlen;
 
+    //Ouverture du port pour écoute du lecteur de carte RFID
     fd = open(portname, O_RDWR | O_NOCTTY | O_SYNC);
 
     if (fd < 0) {
@@ -339,12 +333,12 @@ int main(void){
     /*Configuration du validateur de but*/
     printf("Initialisation....\n");
     init(robots);
-    printf("Robots : %s\n", robots);
+    printf("Données récupérées\n\n");
 
     /* attente active */
     do {
         unsigned char rfid[16];
-	unsigned char* ip;
+	unsigned char* ip, idball;
         int rdlen;
 
 	printf("En attente d'une RFID...\n");
@@ -352,27 +346,31 @@ int main(void){
 
    	printf("nb lu : %d\n", rdlen);
    	printf("valeur : %s\n", rfid);
-   	printf("taille : %lu\n", sizeof(rfid));
 
-	printf("\nValeur de la rfid : --%s--\n", rfid);
+	printf("\nValeur de la rfid : %s\n", rfid);
 
+	//Recher de l'IP associé à la RFID
 	ip = getIPbyRFID(robots, rfid);
 
-	printf("\nIP associé : --%s--\n", ip);
+	if(strlen(ip) <= 0){
+		printf("Erreur de reception de la RFID ou aucune IP associée.\n");
+	}else{
 
+		printf("\nIP associé : %s\n", ip);
 
+		//On récupère l'idBall du joueur
+		idball = joueur_request(ip);
+
+		if(1){ //validationbut_1 ("localhost",idball) == 0){
+			printf("But accepté !\n");
+			sendValidBut(ip);
+		}else{
+			printf("But refusé..\n");
+		}
+	}
 	//sendMonitoring(rfid, "4685484984");
         /* repeat for next rfid */
     } while (1);
-
-/* Besoin de récupérer l'ip en fonction de la rfid
-
-    char hostname[256] = "localhost";
-
-    char* idball = joueur_request(hostname);
-    printf("joueur vaut : %s\n", idball);
-    sendMonitoring(hostname, idball);
-*/
   
 }
 
