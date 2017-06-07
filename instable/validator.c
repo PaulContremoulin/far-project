@@ -10,7 +10,6 @@
 #include <termios.h>
 #include <errno.h>
 #include <fcntl.h> 
-#include <json-c/json.h>
 
 #define PORT 1123
 
@@ -235,7 +234,7 @@ void recvToBebotte(char *channel, char *ressource, char *data) {
     memcpy(data, pos, sizeof(response));
 
     /* process response */
-    printf("Body reponse:\n%s\n\n",data);
+    //printf("Body reponse:\n%s\n\n",data);
 }
 
 //Envoi des données au monitoring
@@ -280,12 +279,43 @@ void init(char *robots){
     recvToBebotte(channel, ressource, robots);
 }
 
-char getIPbyRFID(char *robots, char *rfid){
-	json_object *new_obj;
-	new_obj = json_tokener_parse(robots);
-	char *test = json_object_get_string(json_object_object_get(new_obj, "data"));
-	printf("Valeur de la 1er ligne : %s\n", test
-	);
+char* getIPbyRFID(char *robots, char *rfid){
+	printf("Recherche de l'ip associé à %s..\n", rfid);
+	char *line, *data, *info, *rfid_cmp, *ip, joueurs[4096];
+	char* tabdata[50];
+	int cpt = 0;
+
+	strcpy(joueurs, robots);
+	data = strtok (joueurs, "[]");
+	line = strtok (data, "{}");
+	line = strtok(NULL, "{}");
+	while(line != NULL){
+	    tabdata[cpt] = line;
+	    line = strtok(NULL, "{}");
+	    line = strtok(NULL, "{}");
+	    cpt++;
+	}
+
+	for(int i = 0; i < cpt; i++){
+	    info = strtok(tabdata[i], "\" :");
+	    while(strcmp(info, "data")!=0){
+	    	info = strtok(NULL, "\" :");
+	    }
+	    info = strtok(NULL, "\" :");
+	    rfid_cmp = strtok(info, "=,;");
+	    while(strcmp(rfid_cmp, "RFID")){
+		rfid_cmp = strtok(NULL, "=,;");
+	    }
+	    rfid_cmp = strtok(NULL, "=,;");
+	    if(strcmp(rfid, rfid_cmp) == 0){
+		ip = strtok(NULL, "=,;");
+		ip = strtok(NULL, "=,;");
+		printf("IP associé :%s\n", ip);
+		break;
+	    }
+	}
+
+	return ip;
 }
 
 int main(void){
@@ -314,6 +344,7 @@ int main(void){
     /* attente active */
     do {
         unsigned char rfid[16];
+	unsigned char* ip;
         int rdlen;
 
 	printf("En attente d'une RFID...\n");
@@ -325,7 +356,9 @@ int main(void){
 
 	printf("\nValeur de la rfid : --%s--\n", rfid);
 
-	getIPbyRFID(robots, rfid);
+	ip = getIPbyRFID(robots, rfid);
+
+	printf("\nIP associé : --%s--\n", ip);
 	//sendMonitoring(rfid, "4685484984");
         /* repeat for next rfid */
     } while (1);

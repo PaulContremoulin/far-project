@@ -1,7 +1,7 @@
 # Makefile
 
 all:
-	gcc -L/usr/local/lib validator.c -o valid -ljson
+	gcc validator.c -o valid
 
 clean:
 	rm -f *~ *.o $(BIN)
