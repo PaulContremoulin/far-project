@@ -359,6 +359,8 @@ int main(void){
 	ip = getIPbyRFID(robots, rfid);
 
 	printf("\nIP associé : --%s--\n", ip);
+
+
 	//sendMonitoring(rfid, "4685484984");
         /* repeat for next rfid */
     } while (1);
