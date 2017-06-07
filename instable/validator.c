@@ -290,7 +290,7 @@ char getIPbyRFID(char *robots, char *rfid){
 
 int main(void){
 
-    char *portname = "/dev/ttyACM1";
+    char *portname = "/dev/ttyACM0";
     char robots[4096];
     int fd;
     int wlen;
