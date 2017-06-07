@@ -10,6 +10,7 @@
 #include <termios.h>
 #include <errno.h>
 #include <fcntl.h> 
+#include <json-c/json.h>
 
 #define PORT 1123
 
@@ -178,7 +179,7 @@ int sendToBeBotte(char *canal, char *clefCanal, char *ressource, char *data[]) {
 }
 
 //Fonction pour récupérer les données sur bebotte
-int recvToBebotte(char *channel, char *ressource) {
+void recvToBebotte(char *channel, char *ressource, char *data) {
 
     int sockD, verif, total, received, bytes;
     struct sockaddr_in sin;
@@ -186,6 +187,7 @@ int recvToBebotte(char *channel, char *ressource) {
 
     char *hostname = "api.beebotte.com";
     char response[4096];
+    char *pos;
     
     /* Configuration de la connexion */
     sin.sin_port = htons(80);
@@ -228,10 +230,12 @@ int recvToBebotte(char *channel, char *ressource) {
     /* close the socket */
     close(sockD); 
 
-    /* process response */
-    printf("Response:\n%s\n\n",response);
+    /*Get body response */
+    pos=strchr(response, '[');
+    memcpy(data, pos, sizeof(response));
 
-    return 1;
+    /* process response */
+    printf("Body reponse:\n%s\n\n",data);
 }
 
 //Envoi des données au monitoring
@@ -269,16 +273,25 @@ int sendMonitoring(char* rfid, char* idball) {
 }
 
 //Configuration du validateur de but
-void init(){
+void init(char *robots){
     char *channel = "VB_TC";
     char *ressource = "msg";
     //Fonction beta de reception des rfids
-    recvToBebotte(channel, ressource);
+    recvToBebotte(channel, ressource, robots);
+}
+
+char getIPbyRFID(char *robots, char *rfid){
+	json_object *new_obj;
+	new_obj = json_tokener_parse(robots);
+	char *test = json_object_get_string(json_object_object_get(new_obj, "data"));
+	printf("Valeur de la 1er ligne : %s\n", test
+	);
 }
 
 int main(void){
 
     char *portname = "/dev/ttyACM1";
+    char robots[4096];
     int fd;
     int wlen;
 
@@ -294,7 +307,9 @@ int main(void){
 
 
     /*Configuration du validateur de but*/
-    init();
+    printf("Initialisation....\n");
+    init(robots);
+    printf("Robots : %s\n", robots);
 
     /* attente active */
     do {
@@ -310,7 +325,8 @@ int main(void){
 
 	printf("\nValeur de la rfid : --%s--\n", rfid);
 
-	sendMonitoring(rfid, "4685484984");
+	getIPbyRFID(robots, rfid);
+	//sendMonitoring(rfid, "4685484984");
         /* repeat for next rfid */
     } while (1);
 
