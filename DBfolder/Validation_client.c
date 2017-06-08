@@ -11,7 +11,7 @@
 
 
 
-int validationbut_1(char *host, char *ballon){
+int validationbut_1(char *host, char *ballon, char * RFID){
 	CLIENT *clnt;
 	reponse  *result_1;
 	data  validation_1_arg;
@@ -23,8 +23,8 @@ int validationbut_1(char *host, char *ballon){
 			exit (1);
 		}
 	#endif	/* DEBUG */
-	printf("%s\n", ballon);
 	strcpy(validation_1_arg.cleBallon, ballon);
+	strcpy(validation_1_arg.RFID, RFID);
 	result_1 = validation_1(&validation_1_arg, clnt);
 	if (result_1 == (reponse *) NULL) {
 		clnt_perror (clnt, "call failed");
@@ -40,7 +40,7 @@ int validationbut_1(char *host, char *ballon){
 /*int main (int argc, char *argv[]){
 
 	
-	printf("Resultat: %d\n", validationbut_1 ("localhost","3463456458032135435"));
+	printf("Resultat: %d\n", validationbut_1 ("localhost","1496851958","12345"));
 
 	exit (0);
 

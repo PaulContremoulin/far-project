@@ -90,11 +90,11 @@ int getDonneesRobots() {
       *********/
 
       char * msg;
-      char * msgTemp;
+      char  msgTemp[300];
       int cpt = 0,
       j = 0;
       char* datas[50];
-      char * ligneData; // la ligne du msg qui nous intéresse
+      char * ligneData[50]; // la ligne du msg qui nous intéresse
 
       // On initialise le tableau data avec des valeurs vides
       for(int j = 0; j < 50; j++) {
@@ -107,9 +107,9 @@ int getDonneesRobots() {
       // datas[j] = un message sur beebotte
       while (msg != NULL) {
         if(cpt != 0 && cpt%2 != 0) {//On evite l'entete de la reponse et les virgules separant les json
-          // strcpy(msgTemp, msg);
-          // ligneData = strtok (msgTemp, "\n");
-          // printf("\n\nLigne data :\n%s", ligneData);
+          //strncpy(msgTemp, msg, );
+          //ligneData = strtok (msgTemp, "\n");
+          //printf("\n\nLigne data :\n%s", ligneData);
           printf("\n\nMessage :\n%s", msg);
           // datas[j] = ligneData;
           datas[j] = msg;
@@ -117,14 +117,15 @@ int getDonneesRobots() {
         }
         cpt = cpt + 1;
         msg = strtok (NULL, "{}");
-
-
       }
 
       /*Affichage des datas recus*/
       for(int i = 0; i < 50; i++) {
-        if(datas[i] != "")
-          printf("\n\nRobots datas from beebotte api:\n%s", datas[i]);
+        if(datas[i] != "") {
+          // printf("\n\nRobots datas from beebotte api:\n%s", strtok(strtok (datas[i], "\n"), ","));
+          ligneData[i] = strtok (datas[i], "\n");
+          printf("\n\nligne Data :\n%s", ligneData[i]);
+        }
       }
   close(sock);
 

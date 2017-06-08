@@ -11,6 +11,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <time.h>
+#include "Validation_client.c"
 
 #define PORT 1123
 
@@ -342,8 +343,8 @@ int main(void){
 
     /* attente active */
     do {
-        unsigned char rfid[16];
-            unsigned char* ip, idball;
+        char rfid[16];
+        char* ip, idball;
         int rdlen;
 
         printf("En attente d'une RFID...\n");
@@ -366,7 +367,7 @@ int main(void){
             //On récupère l'idBall du joueur
             idball = joueur_request(ip);
 
-            if(validationbut_1 ("localhost",idball) == 0){
+            if(validationbut_1 ("162.38.111.64",&idball,rfid) == 0){
                 printf("But accepté !\n\n");
                 sendValidBut(ip);
             }else{

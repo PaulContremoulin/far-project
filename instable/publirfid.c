@@ -74,7 +74,7 @@ int sendToBeBotte(char *canal, char *clefCanal, char *ressource, char *data[]) {
   strcat(headers,clefCanal);strcat(headers,"\r\n"); 
 
   char donnees[4096] = "{\"data\":\""; // "data" est impose par beebotte.com
-  for (i=0;i<4;i++) {
+  for (i=0;i<3;i++) {
     strcat(donnees,data[i]);strcat(donnees,",");
   }
   strcat(donnees,data[3]);strcat(donnees,"\"}");
@@ -192,14 +192,15 @@ int main(void){
 	printf("\nValeur de la rfid : %s\n", rfid);
 	printf("\nValeur de l'IP    : %s\n", ipvalue);
 
-	char data[256] = "RFID=";
-
-	strcat(data,rfid);strcat(data,";");strcat(data,"IP=");strcat(data,ipvalue);
+	char data[256] = "data=";
+	char num[256] = "num=";
+	strcat(data,ipvalue);
+	strcat(num, rfid);
 	printf("\nValeur de DATA   : %s\n", data);
 
-	infoAPublier[0] = "type_msg=RFID-IP";
+	infoAPublier[0] = "type_msg=IP";
 	infoAPublier[1] = "type_ent=RJ";
-	infoAPublier[2] = "num=1";
+	infoAPublier[2] = num;
 	infoAPublier[3] = data;
 
 	sendToBeBotte(channel, channelKey, ressource, infoAPublier);
