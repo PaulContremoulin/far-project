@@ -65,6 +65,7 @@ int main(void) {
         if (fichier != NULL){
 
           fgets(buffer, TAILLE, fichier);
+            printf("valeur de ballon : %s\n", buffer);
           send(csock, buffer, strlen(buffer)-1, 0);
           fclose(fichier);
 

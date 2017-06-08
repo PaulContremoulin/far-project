@@ -77,6 +77,9 @@ char* joueur_request(char *ip)
 
   recv(sock, response, 256, 0);
 
+    printf("response : %s\n", response);
+    
+    
   close(sock);
 
   return response;
@@ -241,7 +244,7 @@ void recvToBebotte(char *channel, char *ressource, char *data) {
 }
 
 //Envoi la validation du but
-int sendValidBut(char* joueur) {
+void sendValidBut(char* joueur) {
     char *infoAPublier[4];
     char *channel = "VBpartieTEST";
     char *ressource = "msg";
@@ -318,8 +321,8 @@ char* getIPbyRFID(char *robots, char *rfid){
 }
 
 int main(void){
-
-    char *portname = "/dev/ttyACM0";
+	//cu.usbmodem1411
+    char *portname = "/dev/cu.usbmodem1411";
     char robots[4096];
     int fd;
     int wlen;
@@ -343,8 +346,8 @@ int main(void){
 
     /* attente active */
     do {
-        char rfid[16];
-        char* ip, idball;
+        char rfid[16], idball[256];
+        char* ip;
         int rdlen;
 
         printf("En attente d'une RFID...\n");
@@ -361,13 +364,13 @@ int main(void){
         if(strlen(ip) <= 0){
             printf("Erreur de reception de la RFID ou aucune IP associée.\n");
         }else{
-
+            
             printf("\nIP associé : %s\n", ip);
 
             //On récupère l'idBall du joueur
-            idball = joueur_request(ip);
-
-            if(validationbut_1 ("162.38.111.64",&idball,rfid) == 0){
+            strcpy(idball,joueur_request(ip));
+            printf("IDBALL : %s\n", idball);
+            if(validationbut_1 ("162.38.111.64",idball,rfid)){
                 printf("But accepté !\n\n");
                 sendValidBut(ip);
             }else{

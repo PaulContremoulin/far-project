@@ -148,7 +148,7 @@ int sendToBeBotte(char *canal, char *clefCanal, char *ressource, char *data[]) {
 
 int main(void){
 
-    char *portname = "/dev/ttyACM0";
+    char *portname = "/dev/cu.usbmodem1411";
     int fd;
     int wlen;
     char *pos;
