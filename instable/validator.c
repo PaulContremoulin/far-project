@@ -51,18 +51,19 @@ int set_interface_attribs(int fd, int speed)
 }
 
 //function client vers joueur
-char* joueur_request(char *hostname)
+char* joueur_request(char *ip)
 {
 
   char request[256]="GET";
   char* response=NULL;
   
   struct sockaddr_in sin;
-  struct hostent *hostinfo;
+  //struct hostent *hostinfo;
 
   sin.sin_port = htons(PORT);
-  hostinfo = gethostbyname(hostname);
-  sin.sin_addr = *(struct in_addr *) hostinfo->h_addr;
+  //hostinfo = gethostbyname(hostname);
+  //sin.sin_addr = *(struct in_addr *) hostinfo->h_addr;
+  sin.sin_addr.s_addr = inet_addr(ip);
   sin.sin_family = AF_INET;
 
   int sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -338,37 +339,37 @@ int main(void){
     /* attente active */
     do {
         unsigned char rfid[16];
-	unsigned char* ip, idball;
+            unsigned char* ip, idball;
         int rdlen;
 
-	printf("En attente d'une RFID...\n");
+        printf("En attente d'une RFID...\n");
         rdlen = read(fd, rfid, sizeof(rfid)-1);
 
-   	printf("nb lu : %d\n", rdlen);
-   	printf("valeur : %s\n", rfid);
+        printf("nb lu : %d\n", rdlen);
+        printf("valeur : %s\n", rfid);
 
-	printf("\nValeur de la rfid : %s\n", rfid);
+        printf("\nValeur de la rfid : %s\n", rfid);
 
-	//Recher de l'IP associé à la RFID
-	ip = getIPbyRFID(robots, rfid);
+        //Recher de l'IP associé à la RFID
+        ip = getIPbyRFID(robots, rfid);
 
-	if(strlen(ip) <= 0){
-		printf("Erreur de reception de la RFID ou aucune IP associée.\n");
-	}else{
+        if(strlen(ip) <= 0){
+            printf("Erreur de reception de la RFID ou aucune IP associée.\n");
+        }else{
 
-		printf("\nIP associé : %s\n", ip);
+            printf("\nIP associé : %s\n", ip);
 
-		//On récupère l'idBall du joueur
-		idball = joueur_request(ip);
+            //On récupère l'idBall du joueur
+            idball = joueur_request(ip);
 
-		if(1){ //validationbut_1 ("localhost",idball) == 0){
-			printf("But accepté !\n");
-			sendValidBut(ip);
-		}else{
-			printf("But refusé..\n");
-		}
-	}
-	//sendMonitoring(rfid, "4685484984");
+            if(1){ //validationbut_1 ("localhost",idball) == 0){
+                printf("But accepté !\n");
+                sendValidBut(ip);
+            }else{
+                printf("But refusé..\n");
+            }
+        }
+        //sendMonitoring(rfid, "4685484984");
         /* repeat for next rfid */
     } while (1);
   
