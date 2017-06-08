@@ -15,8 +15,13 @@
 
 #define PORT 1123
 #define SIZE 131072
+#define ARDUINO "/dev/ttyACM0" //Le port où est connecté notre arduino
 
-//Interface d'écoute pour arduino et RFID
+/*
+ * Interface d'écoute pour arduino et RFID
+ * @param int fd [port sur lequel on se connecte]
+ * @param int speed [la partie du port sur lequel on veut se connecter]
+ */
 int set_interface_attribs(int fd, int speed)
 {
     struct termios tty;
@@ -52,10 +57,15 @@ int set_interface_attribs(int fd, int speed)
     return 0;
 }
 
-//function client vers joueur
+
+/*
+ * Communication part socket avec les robots, partie client.
+ * @param char* hostname [nom du serveur sur lequel on veut se connecter]
+ *
+ * @return char* [la réponse reçu du serveur]
+ */
 char* joueur_request(char *ip)
 {
-
   char request[256]="GET";
   char* response=NULL;
 
@@ -73,32 +83,30 @@ char* joueur_request(char *ip)
   printf("Connexion a %s sur le port %d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
 
   response = malloc(256*sizeof(char));
-
   send(sock, request, strlen(request),0);
-
   recv(sock, response, 256, 0);
-
-    printf("response : %s\n", response);
-
+  printf("response : %s\n", response);
   close(sock);
-
   return response;
 }
 
 
-//Fonction d'erreurs
+/*
+ * Permet d'envoyer un message en cas d'erreur
+ * @param char* msg [le message à envoyer]
+ */
 void error(const char *msg) { perror(msg); exit(0); }
 
-//Envoi de données a beebotte en POST
-int sendToBeBotte(char *canal, char *clefCanal, char *ressource, char *data[]) {
-  // data est un tableau de chaines (char[]), c-a-d un tableau de char a deux dimensions
-  // printf("data[0] is %s\n",data[0]);
-  //printf("data[3] is %s\n",data[3]);
-
+/* Envoi de données vers beebotte en POST, par socket.
+* @param char* canal [le canal de communication beebotte où envoyer le message]
+* @param char* clefCanal [la clef pour accéder au canal]
+* @param char* ressource ?
+* @param char[]* data [tableau de ?]
+*/
+int sendToBeebotte(char *canal, char *clefCanal, char *ressource, char *data[])
+{
   int i;
   char *host = "api.beebotte.com";
-    /* !! TODO remplacer 'testVB' par le canal dans lequel publier (ex: partie12)
-        (ici msg est la "ressource" que ce canal attend */
   char path[100] = "/v1/data/write/";
   strcat(path,canal);strcat(path,"/"); strcat(path,ressource);
   struct hostent *server;
@@ -106,7 +114,7 @@ int sendToBeBotte(char *canal, char *clefCanal, char *ressource, char *data[]) {
   int sockfd, bytes, sent, received, total, message_size;
   char *message, response[4096];
 
-    // Necessaire pour envoyer des donnees sur beebottle.com (noter le token du canal a la fin) :
+  /* Nécessaire pour envoyer des données sur beebottle.com (noter le token du canal à la fin) */
   char headers[300] ="Host: api.beebotte.com\r\nContent-Type: application/json\r\nX-Auth-Token: ";
   strcat(headers,clefCanal);strcat(headers,"\r\n");
 
@@ -116,41 +124,38 @@ int sendToBeBotte(char *canal, char *clefCanal, char *ressource, char *data[]) {
   }
   strcat(donnees,data[3]);strcat(donnees,"\"}");
 
-  /* How big is the whole HTTP message? (POST) */
+  /* Récupération de la taille du message HTML */
   message_size=0;
   message_size+=strlen("%s %s HTTP/1.0\r\n")+strlen("POST")+strlen(path)+strlen(headers);
   message_size+=strlen("Content-Length: %d\r\n")+10+strlen("\r\n")+strlen(donnees);
-  /* allocate space for the message */
+  /* On alloue la taille nécessaire au message */
   message=malloc(message_size);
 
-  /* Construit le message POST */
+  /* Construction du message POST */
   sprintf(message,"POST %s HTTP/1.0\r\n",path);
   sprintf(message+strlen(message), "%s",headers);
   sprintf(message+strlen(message),"Content-Length: %zu\r\n",strlen(donnees));
-  strcat(message,"\r\n");              /* blank line     */
-  strcat(message,donnees);             /* body           */
+  strcat(message,"\r\n");              /* ligne blanche */
+  strcat(message,donnees);             /* body */
 
-  /* What are we going to send? */
-  //printf("Request:\n%s\n-------------\n",message);
-
-  /* create the socket */
+  /* création de la socket */
   sockfd = socket(AF_INET, SOCK_STREAM, 0);
   if (sockfd < 0) error("ERROR opening socket");
 
-  /* lookup the ip address */
+  /* vérification de l'host */
   server = gethostbyname(host);
   if (server == NULL) error("ERROR, no such host");
 
-  /* fill in the structure */
+  /* Structure */
   memset(&serv_addr,0,sizeof(serv_addr));
   serv_addr.sin_family = AF_INET;
   serv_addr.sin_port = htons(80); // port 80
   memcpy(&serv_addr.sin_addr.s_addr,server->h_addr,server->h_length);
 
-  /* connect the socket */
+  /* Connexion de la socket */
   if (connect(sockfd,(struct sockaddr *)&serv_addr,sizeof(serv_addr)) < 0) error("ERROR connecting");
 
-  /* send the request */
+  /* envoi du message */
   total = strlen(message);
   sent = 0;
   do {
@@ -160,7 +165,7 @@ int sendToBeBotte(char *canal, char *clefCanal, char *ressource, char *data[]) {
     sent+=bytes;
   } while (sent < total);
 
-  /* receive the response */
+  /* réception de la réponse */
   memset(response,0,sizeof(response));
   total = sizeof(response)-1;
   received = 0;
@@ -173,18 +178,19 @@ int sendToBeBotte(char *canal, char *clefCanal, char *ressource, char *data[]) {
 
   if (received == total) error("ERROR storing complete response from socket");
 
-  /* close the socket */
+  /* fermeture de la socket */
   close(sockfd);
-
-  /* process response */
-  //printf("Response:\n%s\n",response);
 
   free(message);
   return 0;
 }
 
-//Fonction pour récupérer les données sur bebotte
-void recvToBebotte(char *channel, char *ressource, char *data) {
+/* Récupération des données sur Beebotte
+ * @param char* channel [le channel beebotte où l'on veut récupérer les données]
+ * @param char* ressource [?]
+ * @param char* data [?]
+ */
+void recvToBeebotte(char *channel, char *ressource, char *data) {
 
     int sockD, verif, total, received, bytes;
     struct sockaddr_in sin;
@@ -202,14 +208,14 @@ void recvToBebotte(char *channel, char *ressource, char *data) {
     sin.sin_family = AF_INET;
 
 
-    /* Creation de la socket */
+    /* Création de la socket */
     sockD = socket(AF_INET, SOCK_STREAM, 0);
 
     /* Tentative de connexion au serveur */
     connect(sockD, (struct sockaddr*)&sin, sizeof(sin));
     printf("Connexion a %s sur le port %d\n", inet_ntoa(sin.sin_addr), htons(sin.sin_port));
 
-    /* Creation de la requête */
+    /* Création de la requête */
     char request[256];
     sprintf(request, "GET /v1/public/data/read/vberry/%s/%s HTTP/1.1\r\nHost: %s\r\n\r\n", channel, ressource, hostname);
     printf("REQUETE : \n%s\n",request);
@@ -217,18 +223,18 @@ void recvToBebotte(char *channel, char *ressource, char *data) {
     /* Envoie du message au serveur */
     verif = send(sockD, request, strlen(request),0);
 
-    /* receive the response */
+    /* réception de la réponse */
     memset(response,0,sizeof(response));
     total = SIZE*sizeof(char);
     received = 0;
     do {
     	bytes = recv(sockD,response+received,total-received,0); //MSG_PEEK);
         if (bytes < 0) error("ERROR reading response from socket");
-	if (bytes == 0) break;
-	received+=bytes;
-	printf("Message = %s\n", response);
-	printf("receved = %d\n", received);
-    } while (received < total && (pos=strchr(response, ']'))==NULL);
+      	if (bytes == 0) break;
+      	received+=bytes;
+      	printf("Message = %s\n", response);
+      	printf("receved = %d\n", received);
+    } while (received < total && (pos=strchr(response, ']')) == NULL);
 
     if (received >= total) error("ERROR storing complete response from socket");
 
@@ -238,15 +244,14 @@ void recvToBebotte(char *channel, char *ressource, char *data) {
     /*Get body response */
     pos=strchr(response, '[');
     memcpy(data, pos, sizeof(response));
-
-    /* process response */
-    //printf("Body reponse:\n%s\n\n",data);
 }
 
-//Envoi la validation du but
-void sendValidBut(char* joueur) {
+/* Envoi la validation du but sur beebotte
+ * @param char* channel [le channel où l'on veut publier la réponse]
+ * @param char* joueur [l'ip du joueur qui a marqué]
+ */
+void sendValidBut(char* channel, char* joueur) {
     char *infoAPublier[4];
-    char *channel = "VBpartieTEST";
     char *ressource = "msg";
     // VB_TC : 1496436248369_f6FG4rK7bYcY9R1u
     // VBpartieTEST : 1496856372525_RTFvkGaUTGiDzni8
@@ -266,17 +271,24 @@ void sendValidBut(char* joueur) {
     infoAPublier[2] = "num=1";
     infoAPublier[3] = data;
 
-    sendToBeBotte(channel, channelKey, ressource, infoAPublier);
+    sendToBeebotte(channel, channelKey, ressource, infoAPublier);
 }
 
-//Configuration du validateur de but
-void init(char *robots){
-    char *channel = "partie0";
+/* Configuration du validateur de but
+ * @param char* channel
+ * @param char* robots [la liste des robots de la partie]
+ */
+void init(char *channel, char *robots){
     char *ressource = "msg";
-    //Fonction beta de reception des rfids
-    recvToBebotte(channel, ressource, robots);
+    recvToBeebotte(channel, ressource, robots);
 }
 
+/* Permet de récupérer l'ip d'un robot à partir
+ * de son RFID.
+ * @param char* infosPartie [liste des robotos de la partie]
+ * @param char* rfid
+ * @return char* [IP du robot]
+ */
 char* getIPbyRFID(char *infosPartie, char *rfid){
 
 	printf("Recherche de l'ip associé à %s..\n", rfid);
@@ -292,49 +304,47 @@ char* getIPbyRFID(char *infosPartie, char *rfid){
 	data = strtok (NULL, "{}");
 
 	//Chaque ligne de données est enregistrée dans tabdata
-
 	while(data != NULL){
 	    tabdata[cpt] = data;
 	    data = strtok(NULL, "{}");
 	    data = strtok(NULL, "{}");
 	    cpt++;
 	}
-
+  /* Récupèration d'un message complet de beebotte*/
 	for(int i = 0; i < cpt; i++){
-
-            /* Récupèration d'un message */
 	    line = strtok (tabdata[i], "\"");
-            line = strtok (NULL, "\"");
+      line = strtok (NULL, "\"");
 	    line = strtok (NULL, ":\n\"");
-            line = strtok (NULL, "\"");
+      line = strtok (NULL, "\"");
 	    tabdata[i] = line;
-
 	}
-
-	for(int i = 0; i < cpt; i++){
-	    line = strtok (tabdata[i], "=,");
-	    if(line != NULL && strcmp(line, "    ") != 0 ){
-	        line = strtok (NULL, "=,");
-		if(strcmp(line, "IP") == 0){
+	for(int i = 0; i < cpt; i++)
+  {
+    line = strtok (tabdata[i], "=,");
+    if(line != NULL && strcmp(line, "    ") != 0 )
+    {
+      line = strtok (NULL, "=,");
+      if(strcmp(line, "IP") == 0)
+      {
 		    line = strtok (NULL, "=,");
 		    line = strtok (NULL, "=,");
 		    line = strtok (NULL, "=,");
 		    rfid_cmp = strtok (NULL, "=,");
-		    if(strcmp(rfid_cmp, rfid) == 0){
+		    if(strcmp(rfid_cmp, rfid) == 0)
+        {
 		    	line = strtok (NULL, "=,");
 		    	ip = strtok (NULL, "=,");
 		    	printf("IP trouvé : %s\n", ip);
-		    }
-		}
-	     }
-	 }
-
-	 return ip;
+	      }
+      }
+    }
+  }
+  return ip;
 }
 
 int main(void){
 	//cu.usbmodem1411
-    char *portname = "/dev/ttyACM0";
+    char *portname = ARDUINO;
     char robots[SIZE];
     int fd;
     int wlen;
@@ -347,18 +357,17 @@ int main(void){
         return -1;
     }
 
-    /*baudrate 115200, 8 bits, no parity, 1 stop bit */
+    /* baudrate 115200, 8 bits, no parity, 1 stop bit */
     set_interface_attribs(fd, B115200);
 
-
-    /*Configuration du validateur de but*/
+    /* Initialisation du validateur de but */
     printf("Initialisation....\n");
-    init(robots);
+    init("partie0", robots);
     printf("Données récupérées\n\n");
 
     /* attente active */
     do {
-        char rfid[16], idball[256];
+        char rfid[16], idBall[256];
         char* ip;
         int rdlen;
 
@@ -370,27 +379,26 @@ int main(void){
 
         printf("\nValeur de la rfid : %s\n", rfid);
 
-        //Recher de l'IP associé à la RFID
+        //Recherche de l'IP associé au RFID
         ip = getIPbyRFID(robots, rfid);
 
         if(strlen(ip) <= 0){
-            printf("Erreur de reception de la RFID ou aucune IP associée.\n");
+            printf("Erreur de reception du RFID ou aucune IP associée.\n");
         }else{
-            
+
             printf("\nIP associé : %s\n", ip);
 
             //On récupère l'idBall du joueur
-            strcpy(idball,joueur_request(ip));
-            printf("IDBALL : %s\n", idball);
-            if(validationbut_1 ("162.38.111.64",idball,rfid)){
+            strcpy(idBall,joueur_request(ip));
+            printf("idBall : %s\n", idBall);
+            if(validationbut_1 ("162.38.111.64",idBall,rfid)){
                 printf("But accepté !\n\n");
-                sendValidBut(ip);
+                sendValidBut("VBpartieTEST", ip);
             }else{
                 printf("But refusé..\n\n");
             }
         }
-        //sendMonitoring(rfid, "4685484984");
-        /* repeat for next rfid */
+    /* repeat for next rfid */
     } while (1);
 
 }
