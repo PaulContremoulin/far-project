@@ -1,0 +1,7 @@
+projet réalisé par Paul Contremoulin, Lucie Truong, Mégane Wintz.
+
+Pour compiler le projet : gcc main -o main
+Pour le lancer : ./main nomDuChannel IPDistrubuteurBallon
+
+VALIDATEUR DE BUT : permet de vérifier lorsqu'un joueur veut marquer un but si son ballon est bon (grâce au distributeur de ballon), ensuite on envoie
+la confirmation ou non du but au joueur. Enfin, on envoie sur beebotte le but avec l'ip du joueur qui a marqué.
