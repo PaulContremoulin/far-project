@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-
+#include "Validation_clnt.c"
 
 
 int validationbut_1(char *host, char *ballon, char * RFID){

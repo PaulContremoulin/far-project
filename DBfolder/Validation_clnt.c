@@ -5,6 +5,7 @@
 
 #include <memory.h> /* for memset */
 #include "Validation.h"
+#include "Validation_xdr.c"
 
 /* Default timeout can be changed using clnt_control() */
 static struct timeval TIMEOUT = { 25, 0 };
