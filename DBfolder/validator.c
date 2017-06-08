@@ -14,6 +14,7 @@
 #include "Validation_client.c"
 
 #define PORT 1123
+#define SIZE 131072
 
 //Interface d'écoute pour arduino et RFID
 int set_interface_attribs(int fd, int speed)
@@ -78,8 +79,7 @@ char* joueur_request(char *ip)
   recv(sock, response, 256, 0);
 
     printf("response : %s\n", response);
-    
-    
+
   close(sock);
 
   return response;
@@ -191,7 +191,7 @@ void recvToBebotte(char *channel, char *ressource, char *data) {
     struct hostent *hostinfo;
 
     char *hostname = "api.beebotte.com";
-    char response[4096];
+    char response[SIZE];
     char *pos;
 
     /* Configuration de la connexion */
@@ -212,25 +212,25 @@ void recvToBebotte(char *channel, char *ressource, char *data) {
     /* Creation de la requête */
     char request[256];
     sprintf(request, "GET /v1/public/data/read/vberry/%s/%s HTTP/1.1\r\nHost: %s\r\n\r\n", channel, ressource, hostname);
-    //printf("REQUETE : \n%s\n",request);
+    printf("REQUETE : \n%s\n",request);
 
     /* Envoie du message au serveur */
     verif = send(sockD, request, strlen(request),0);
 
     /* receive the response */
     memset(response,0,sizeof(response));
-    total = sizeof(response)-1;
+    total = SIZE*sizeof(char);
     received = 0;
-    //do {
-	//printf("receved = %d\n", received);
-	//printf("Message = %s\n", response);
-    	bytes = recv(sockD,response+received,total-received,MSG_PEEK);
+    do {
+    	bytes = recv(sockD,response+received,total-received,0); //MSG_PEEK);
         if (bytes < 0) error("ERROR reading response from socket");
-	//if (bytes == 0) break;
+	if (bytes == 0) break;
 	received+=bytes;
-    //} while (received < total);
+	printf("Message = %s\n", response);
+	printf("receved = %d\n", received);
+    } while (received < total && (pos=strchr(response, ']'))==NULL);
 
-    if (received == total) error("ERROR storing complete response from socket");
+    if (received >= total) error("ERROR storing complete response from socket");
 
     /* close the socket */
     close(sockD);
@@ -271,59 +271,71 @@ void sendValidBut(char* joueur) {
 
 //Configuration du validateur de but
 void init(char *robots){
-    char *channel = "RJpartieTEST";
+    char *channel = "partie0";
     char *ressource = "msg";
     //Fonction beta de reception des rfids
     recvToBebotte(channel, ressource, robots);
 }
 
-char* getIPbyRFID(char *robots, char *rfid){
-	printf("Recherche de l'ip associé à %s..\n", rfid);
-	char *line, *data, *info, *rfid_cmp, *ip, joueurs[4096];
-	char* tabdata[50];
-	int cpt = 0;
-  ip = "";
+char* getIPbyRFID(char *infosPartie, char *rfid){
 
-	strcpy(joueurs, robots);
-	// printf("ROBOTS : %s\n", joueurs);
+	printf("Recherche de l'ip associé à %s..\n", rfid);
+
+	char *line, *data, *rfid_cmp, *ip, joueurs[SIZE];
+	char* tabdata[1500];
+	int cpt = 0;
+	ip = "";
+
+	strcpy(joueurs, infosPartie);
 	data = strtok (joueurs, "[]");
-	line = strtok (data, "{}");
-	line = strtok(NULL, "{}");
-	while(line != NULL){
-	    tabdata[cpt] = line;
-	    line = strtok(NULL, "{}");
-	    line = strtok(NULL, "{}");
+	data = strtok (data, "{}");
+	data = strtok (NULL, "{}");
+
+	//Chaque ligne de données est enregistrée dans tabdata
+
+	while(data != NULL){
+	    tabdata[cpt] = data;
+	    data = strtok(NULL, "{}");
+	    data = strtok(NULL, "{}");
 	    cpt++;
 	}
 
 	for(int i = 0; i < cpt; i++){
-    /* Récupèration d'un message */
-	  info = strtok(tabdata[i], "\"");
-	    while(strcmp(info, "data")!=0){
-	    	info = strtok(NULL, "\"");
-	    }
-	    info = strtok(NULL, "\"");
-      info = strtok(NULL, "\"");
-	    rfid_cmp = strtok(info, ",=");
-	    while(strcmp(rfid_cmp, "num")){
-		      rfid_cmp = strtok(NULL, "=,");
-	    }
-	    rfid_cmp = strtok(NULL, "=,");
-       if(strcmp(rfid, rfid_cmp) == 0){
-		      ip = strtok(NULL, "=,");
-		      ip = strtok(NULL, "=,");
-		      printf("IP associé :%s\n", ip);
-		      break;
-	    }
+
+            /* Récupèration d'un message */
+	    line = strtok (tabdata[i], "\"");
+            line = strtok (NULL, "\"");
+	    line = strtok (NULL, ":\n\"");
+            line = strtok (NULL, "\"");
+	    tabdata[i] = line;
+
 	}
 
-	return ip;
+	for(int i = 0; i < cpt; i++){
+	    line = strtok (tabdata[i], "=,");
+	    if(line != NULL && strcmp(line, "    ") != 0 ){
+	        line = strtok (NULL, "=,");
+		if(strcmp(line, "IP") == 0){
+		    line = strtok (NULL, "=,");
+		    line = strtok (NULL, "=,");
+		    line = strtok (NULL, "=,");
+		    rfid_cmp = strtok (NULL, "=,");
+		    if(strcmp(rfid_cmp, rfid) == 0){
+		    	line = strtok (NULL, "=,");
+		    	ip = strtok (NULL, "=,");
+		    	printf("IP trouvé : %s\n", ip);
+		    }
+		}
+	     }
+	 }
+
+	 return ip;
 }
 
 int main(void){
 	//cu.usbmodem1411
-    char *portname = "/dev/cu.usbmodem1411";
-    char robots[4096];
+    char *portname = "/dev/ttyACM0";
+    char robots[SIZE];
     int fd;
     int wlen;
 

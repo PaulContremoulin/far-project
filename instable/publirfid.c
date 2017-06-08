@@ -148,17 +148,18 @@ int sendToBeBotte(char *canal, char *clefCanal, char *ressource, char *data[]) {
 
 int main(void){
 
-    char *portname = "/dev/cu.usbmodem1411";
+    char *portname = "/dev/ttyACM0";
     int fd;
     int wlen;
     char *pos;
     char ipvalue[256];
     char *infoAPublier[4];
-    char *channel = "RJpartieTEST";
+    char *channel = "partie0";
     char *ressource = "msg";
     // VB_TC : 1496436248369_f6FG4rK7bYcY9R1u
     // RJpartieTEST : 1496856856204_4VjiqoDtPoWVTeHD
-   char *channelKey = "1496856856204_4VjiqoDtPoWVTeHD";
+    // partie 0 : 1494793564147_KNl54g97mG89kQSZ
+   char *channelKey = "1494793564147_KNl54g97mG89kQSZ";
 
     fd = open(portname, O_RDWR | O_NOCTTY | O_SYNC);
 
